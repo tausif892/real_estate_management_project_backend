@@ -9,11 +9,11 @@ const {showProperty,
     showPropertyBySeller,
     showPropertyTile} = require("../controller/propertyControllers.cjs");
 router.route("/").get(showProperty);
-router.route("/").post(addProperty);
-router.route("/:id").get(findProperty);
-router.route("/:id").put(updateProperty);
-router.route("/:id").delete(deleteProperty);
-router.route("/:contact_info").get(showPropertyBySeller);
+router.route("/create").post(addProperty);
+router.route("/find/:id").get(findProperty);
+router.route("/update/:id").put(updateProperty);
+router.route("/delete/:id").delete(deleteProperty);
+router.route("/show_by_seller/:owner_contact").get(showPropertyBySeller);
 router.route("/tile").get(showPropertyTile);
 
 module.exports = router;

@@ -13,7 +13,7 @@ const createPropertyTable = asyncHandler(async () => {
         await connection.execute(
             `BEGIN
                 EXECUTE IMMEDIATE 'CREATE TABLE property (
-                    id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    id NUMBER PRIMARY KEY,
                     name VARCHAR2(20),
                     location VARCHAR2(50),
                     price NUMBER,
@@ -43,7 +43,7 @@ const createPropertyTable = asyncHandler(async () => {
 const showProperty = asyncHandler(async (req, res) => {
     let connection;
     try {
-        connection = await getConnection(dbConfig);
+        connection = await oracledb.getConnection(dbConfig);
         const result = await connection.execute(`SELECT * FROM property`);
         res.json(result.rows);
     } catch (error) {
@@ -58,7 +58,7 @@ const findProperty = asyncHandler(async (req, res) => {
     const { id } = req.params;
     let connection;
     try {
-        connection = await getConnection(dbConfig);
+        connection = await oracledb.getConnection(dbConfig);
         const result = await connection.execute(`SELECT * FROM property WHERE id = :id`, { id });
         res.json(result.rows);
     } catch (error) {
@@ -73,7 +73,7 @@ const addProperty = asyncHandler(async (req, res) => {
     const { name, location, price, favorite, owner_name, owner_contact, type, furnishing_status, maintenance, photo_tile, photo_2 } = req.body;
     let connection;
     try {
-        connection = await getConnection(dbConfig);
+        connection = await oracledb.getConnection(dbConfig);
         await connection.execute(
             `INSERT INTO property (name, location, price, favorite, owner_name, owner_contact, type, furnishing_status, maintenance, photo_tile, photo_2) 
              VALUES (:name, :location, :price, :favorite, :owner_name, :owner_contact, :type, :furnishing_status, :maintenance, :photo_tile, :photo_2)`,
@@ -93,7 +93,7 @@ const deleteProperty = asyncHandler(async (req, res) => {
     const { id } = req.params;
     let connection;
     try {
-        connection = await getConnection(dbConfig);
+        connection = await oracledb.getConnection(dbConfig);
         await connection.execute(`DELETE FROM property WHERE id = :id`, { id }, { autoCommit: true });
         res.json({ message: "Property deleted successfully" });
     } catch (error) {
@@ -105,10 +105,11 @@ const deleteProperty = asyncHandler(async (req, res) => {
 });
 
 const updateProperty = asyncHandler(async (req, res) => {
-    const { id, name, location, price, favorite, owner_name, owner_contact, type, furnishing_status, maintenance, photo_tile, photo_2 } = req.body;
+    const {id} = req.params;
+    const {name, location, price, favorite, owner_name, owner_contact, type, furnishing_status, maintenance, photo_tile, photo_2 } = req.body;
     let connection;
     try {
-        connection = await getConnection(dbConfig);
+        connection = await oracledb.getConnection(dbConfig);
         await connection.execute(
             `UPDATE property 
             SET name = :name, location = :location, price = :price, favorite = :favorite, owner_name = :owner_name, owner_contact = :owner_contact, type = :type, furnishing_status = :furnishing_status, maintenance = :maintenance, photo_tile = :photo_tile, photo_2 = :photo_2
@@ -129,7 +130,7 @@ const showPropertyBySeller = asyncHandler(async (req, res) => {
     const { owner_contact } = req.params;
     let connection;
     try {
-        connection = await getConnection(dbConfig);
+        connection = await oracledb.getConnection(dbConfig);
         const result = await connection.execute(
             `SELECT photo_tile, name, location, price FROM property WHERE owner_contact = :owner_contact`,
             { owner_contact }
@@ -146,7 +147,7 @@ const showPropertyBySeller = asyncHandler(async (req, res) => {
 const showPropertyTile = asyncHandler(async (req, res) => {
     let connection;
     try {
-        connection = await getConnection(dbConfig);
+        connection = await oracledb.getConnection(dbConfig);
         const result = await connection.execute(`SELECT photo_tile, name, location, price FROM property`);
         res.json(result.rows);
     } catch (error) {
