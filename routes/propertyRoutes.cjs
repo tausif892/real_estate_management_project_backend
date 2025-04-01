@@ -15,7 +15,7 @@ router.route("/create").post(addProperty);
 router.route("/find/:id").get(findProperty);
 router.route("/update/:id").put(updateProperty);
 router.route("/delete/:id").delete(deleteProperty);
-router.route("/show_by_seller/:owner_contact").get(showPropertyBySeller);
+router.route("/showbyseller/:owner_contact").get(showPropertyBySeller);
 router.route("/tile").get(showPropertyTile);
 router.route("/transaction").post(transaction);
 router.route("/showtransaction").get(showTransaction)

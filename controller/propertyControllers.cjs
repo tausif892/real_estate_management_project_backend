@@ -89,13 +89,31 @@ const findProperty = asyncHandler(async (req, res) => {
 
 const addProperty = asyncHandler(async (req, res) => {
     const { name, location, price, favorite, owner_name, owner_contact, type, furnishing_status, maintenance, photo_tile, photo_2 } = req.body;
+
     let connection;
     try {
         connection = await oracledb.getConnection(dbConfig);
+
+        // Convert photo_tile and photo_2 to Buffer if they are base64 strings
+        const photoTileBuffer = photo_tile ? Buffer.from(photo_tile, 'base64') : null;
+        const photo2Buffer = photo_2 ? Buffer.from(photo_2, 'base64') : null;
+
         await connection.execute(
             `INSERT INTO property (name, location, price, favorite, owner_name, owner_contact, type, furnishing_status, maintenance, photo_tile, photo_2) 
              VALUES (:name, :location, :price, :favorite, :owner_name, :owner_contact, :type, :furnishing_status, :maintenance, :photo_tile, :photo_2)`,
-            { name, location, price, favorite, owner_name, owner_contact, type, furnishing_status, maintenance, photo_tile, photo_2 },
+            {
+                name,
+                location,
+                price,
+                favorite,
+                owner_name,
+                owner_contact,
+                type,
+                furnishing_status,
+                maintenance,
+                photo_tile: photoTileBuffer,
+                photo_2: photo2Buffer
+            },
             { autoCommit: true }
         );
         res.status(201).json({ message: "Property added successfully" });
@@ -106,6 +124,7 @@ const addProperty = asyncHandler(async (req, res) => {
         if (connection) await connection.close();
     }
 });
+
 
 const deleteProperty = asyncHandler(async (req, res) => {
     const { id } = req.params;
