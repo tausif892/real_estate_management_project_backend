@@ -1,9 +1,9 @@
 const oracledb = require('oracledb');
 const express = require('express');
 const app = express();
-
+const cors = require("cors");
 app.use(express.json());
-
+app.use(cors());
 app.use("/properties", require("./routes/propertyRoutes.cjs"));
 app.use("/buyers", require ("./routes/buyerRoutes.cjs"));
 app.use("/sellers", require("./routes/sellerRoutes.cjs"));

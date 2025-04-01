@@ -10,6 +10,7 @@
   "type": "module",
   "description": "",
   "dependencies": {
+    "cors": "^2.8.5",
     "oracledb": "^6.8.0"
   },
   "devDependencies": {

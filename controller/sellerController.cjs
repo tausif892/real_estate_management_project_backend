@@ -70,30 +70,38 @@ const addSeller = asyncHandler( async (req,res) => {
     }
 });
 
-const findSellerByContactInfo = asyncHandler( async (req,res) => {
+const findSellerByContactInfo = asyncHandler(async (req, res) => {
     let connection;
-    const contact_info = req.body;
-    try{
+    const { contact_info } = req.body; // Extract contact_info properly
+
+    try {
         connection = await oracledb.getConnection({
             user: 'SYSTEM',
             password: 'admin',
             connectionString: 'localhost/xepdb1'
         });
-    
-        await connection.execute(
-            `SELECT contact_info FROM sellers WHERE contact_info = :contact_info`, {contact_info},{outFormat: oracledb.OUT_FORMAT_OBJECT});
-    
-            await connection.commit();
-            res.status(200).json({message: "Seller found"});
 
-    }catch(error){
-        res.status(500);
+        const result = await connection.execute(
+            `SELECT * FROM sellers WHERE contact_info = :contact_info`, 
+            { contact_info: { val: contact_info, type: oracledb.STRING, maxSize: 100 } }, 
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "Seller not found" });
+        }
+
+        res.status(200).json({ message: "Seller found", seller: result.rows });
+
+    } catch (error) {
         console.error(error);
-    }finally{
-        if (connection){
-            try{
+        res.status(500).json({ error: "Internal Server Error" });
+
+    } finally {
+        if (connection) {
+            try {
                 await connection.close();
-            }catch(error){
+            } catch (error) {
                 console.error(error);
             }
         }
@@ -176,9 +184,39 @@ const deleteSeller = asyncHandler(async (req, res) => {
     }
 });
 
+const showAll = asyncHandler( async (req,res) => {
+    let connection;
+    try{
+        connection = await oracledb.getConnection({
+            user: 'SYSTEM',
+            password: 'admin',
+            connectionString: 'localhost/xepdb1'
+        });
+    
+        await connection.execute(
+            `SELECT * from sellers`);
+    
+            await connection.commit();
+            res.status(200).json({message: "Seller found"});
+
+    }catch(error){
+        res.status(500);
+        console.error(error);
+    }finally{
+        if (connection){
+            try{
+                await connection.close();
+            }catch(error){
+                console.error(error);
+            }
+        }
+    }
+});
+
+
 createSellerTable();
 
-module.exports = {addSeller, deleteSeller, findSellerByContactInfo, updateSeller};
+module.exports = {addSeller, deleteSeller, findSellerByContactInfo, updateSeller, showAll};
 
 
 

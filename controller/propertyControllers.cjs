@@ -59,15 +59,33 @@ const findProperty = asyncHandler(async (req, res) => {
     let connection;
     try {
         connection = await oracledb.getConnection(dbConfig);
-        const result = await connection.execute(`SELECT * FROM property WHERE id = :id`, { id });
-        res.json(result.rows);
+        
+        // Set outFormat to OBJECT to get column names in the result
+        const result = await connection.execute(
+            `SELECT * FROM property WHERE id = :id`, 
+            { id },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        
+        if (result.rows && result.rows.length > 0) {
+            return res.status(200).json(result.rows[0]); // Return the first property found
+        } else {
+            return res.status(404).json({ message: "Property not found" });
+        }
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error finding property" });
+        console.error("Error finding property:", error);
+        return res.status(500).json({ error: "Error finding property" });
     } finally {
-        if (connection) await connection.close();
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (err) {
+                console.error("Error closing connection:", err);
+            }
+        }
     }
 });
+
 
 const addProperty = asyncHandler(async (req, res) => {
     const { name, location, price, favorite, owner_name, owner_contact, type, furnishing_status, maintenance, photo_tile, photo_2 } = req.body;
@@ -148,7 +166,7 @@ const showPropertyTile = asyncHandler(async (req, res) => {
     let connection;
     try {
         connection = await oracledb.getConnection(dbConfig);
-        const result = await connection.execute(`SELECT photo_tile, name, location, price FROM property`);
+        const result = await connection.execute(`SELECT id, name, location, price, photo_tile FROM property`);
         res.json(result.rows);
     } catch (error) {
         console.error(error);
@@ -158,8 +176,87 @@ const showPropertyTile = asyncHandler(async (req, res) => {
     }
 });
 
-createPropertyTable();
+const createBuySellTable = asyncHandler(async () => {
+    let connection;
+    try {
+        connection = await oracledb.getConnection(dbConfig);
+        await connection.execute(
+            `BEGIN
+                EXECUTE IMMEDIATE 'CREATE TABLE BuySell (
+                    owner_number NUMBER(10),
+                    contact_number VARCHAR2(20),
+                    id NUMBER,
+                    CONSTRAINT fk_owner FOREIGN KEY (owner_number) REFERENCES sellers(contact_info),
+                    CONSTRAINT fk_buyer FOREIGN KEY (contact_number) REFERENCES buyers(contact_number),
+                    CONSTRAINT fk_property FOREIGN KEY (id) REFERENCES property(id)
+                )';
+            EXCEPTION
+                WHEN OTHERS THEN
+                    IF SQLCODE != -955 THEN RAISE;
+                    END IF;
+            END;`
+        );
+        console.log(`BuySell table created successfully`);
+    } catch (error) {
+        console.error(error);
+    } finally {
+        if (connection) await connection.close();
+    }
+});
 
+const transaction = asyncHandler(async (req, res) => {
+    const {id, owner_contact, contact_info_buyer} = req.body;
+    let connection;
+    try {
+        connection = await oracledb.getConnection(dbConfig);
+        await connection.execute(
+            `INSERT INTO BuySell (owner_number, contact_number, id) 
+             VALUES (:owner_contact, :contact_info_buyer, :id)`,{owner_contact, contact_info_buyer, id},
+            { autoCommit: true }
+        );
+        res.status(201).json({ message: "Property added successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error adding property" });
+    } finally {
+        if (connection) await connection.close();
+    }
+});
+
+const showTransaction = asyncHandler(async (req, res) => {
+    let connection;
+    try {
+        connection = await oracledb.getConnection(dbConfig);
+
+        const result = await connection.execute(
+            `SELECT * FROM BuySell`,
+            [],
+            { outFormat: oracledb.OUT_FORMAT_OBJECT } 
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "No transactions found" });
+        }
+
+        res.status(200).json({ message: "Showing BuySell", transactions: result.rows });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error showing BuySell" });
+
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (error) {
+                console.error("Error closing connection:", error);
+            }
+        }
+    }
+});
+
+createPropertyTable();
+createBuySellTable();
 module.exports = {
     showProperty,
     addProperty,
@@ -167,6 +264,8 @@ module.exports = {
     deleteProperty,
     updateProperty,
     showPropertyBySeller,
-    showPropertyTile
+    showPropertyTile,
+    transaction,
+    showTransaction
 };
 
